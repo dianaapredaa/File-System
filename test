@@ -1,23 +1,13 @@
 mkdir A
-mkdir B
-ls
 cd A
-ls
-mkdir C
-mkdir D
-mkdir E
-ls
-cd ..
+mkdir B
 cd B
-mkdir lmao
-mkdir haha
-ls
+touch b
 cd ..
-cd A/C
-ls
-touch naspa fijsdjfidsjfis
-touch dsijfijds ifdsijfdjsifjdsifjsi
-ls
-ls naspa
-ls dsijfijds
-ls
+mkdir C
+cd C
+touch c
+touch d
+cd ../..
+touch y content_y
+tree A/C

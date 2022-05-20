@@ -27,6 +27,81 @@ FileTree createFileTree(char* rootFolderName) {
     return file_tree;
 }
 
+TreeNode* get_path(TreeNode* currentNode, char* path, int isDisplay) {
+    TreeNode* pastNode = currentNode;
+    // buffer for each folder that we jump into
+    char* buff;
+    // get len of path and init current len
+    int len = strlen(path);
+    int curr_len = 0;
+    // get the first folder we dive into
+    buff = strtok(path, "/\n");
+    // we track current len, so it matches with path len
+    // so we know when to stop, without crashing bcs of strtok
+    while (curr_len < len) {
+        // change folder
+        if (!strcmp(buff, "..")) {
+            currentNode = currentNode->parent;
+            curr_len += 3;
+            buff = strtok(NULL, "/\n");
+            continue;
+        }
+        // check for bad folder
+        FolderContent* folder_content = currentNode->content;
+        if (folder_content->children == NULL) {
+            puts("bad folder");
+            return currentNode;
+        }
+        ListNode* node = folder_content->children->head;
+        // iterate until we find correct folder to switch into
+        if ((!node || !node->info) && isDisplay == 0) {
+            // case: empty folder
+            printf("cd: no such file or directory: %s\n", path);
+            return pastNode;
+        } else if ((!node || !node->info) && isDisplay == 1)   {
+            // case: empty folder, but for displaying
+            printf("%s [error opening dir]\n\n0 directories, 0 files\n", path);
+            return pastNode;
+        }
+        // iterate until we find desired folder
+        // or until we run out of folders
+        while (node && strcmp(buff, node->info->name)) {
+            if (node == NULL && isDisplay == 0) {
+                printf("cd: no such file or directory: %s\n", path);
+                return pastNode;
+            } else if (node == NULL && isDisplay == 1) {
+                printf("%s [error opening dir]\n\n0 directories, 0 files\n",
+                       path);
+                return pastNode;
+            }
+            node = node->next;
+        }
+        // if node is node Is NULL, then there's no such directory
+        if (node == NULL && isDisplay == 0) {
+            printf("cd: no such file or directory: %s\n", path);
+            return pastNode;
+        } else if (node == NULL && isDisplay == 1) {
+            printf("%s [error opening dir]\n\n0 directories, 0 files\n", path);
+            return pastNode;
+        }
+        // at this point, in 'node' we have the folder we must go into
+        if (node->info->type == FOLDER_NODE) {
+            currentNode = node->info;
+        } else if (isDisplay == 1){
+            // found node is a file
+            printf("%s [error opening dir]\n\n0 directories, 0 files\n", path);
+            return pastNode;
+        } else {
+            return pastNode;
+        }
+        // update current len
+        curr_len += strlen(buff) + 1;
+        // get next folder
+        buff = strtok(NULL, "/");
+    }
+    return currentNode;
+}
+
 void free_node(TreeNode* node);
 
 void freeTree(FileTree fileTree) {
@@ -93,12 +168,15 @@ void ls(TreeNode* currentNode, char* arg) {
         puts("Damn bro.. that sucks..");
         return;
     }
+
     List* children = children_content->children;
     if (children == NULL) {
         puts("Pls stop..");
         return;
     }
+
     ListNode* node = children->head;
+
     if (node == NULL && !strcmp(arg, NO_ARG)) {
         return;
     } else if (node == NULL) {
@@ -119,7 +197,7 @@ void ls(TreeNode* currentNode, char* arg) {
             if (children == NULL) {
                 puts("Problems");
                 return;
-            }   
+            }
 
             printf("%s\n", treenode->name);
             // get next node
@@ -166,9 +244,18 @@ void ls(TreeNode* currentNode, char* arg) {
     }
 }
 
-
 void pwd(TreeNode* treeNode) {
-    // TODO
+    // malloc path string
+    char* path = malloc(MAX_STRING_SIZE);
+    // get to root, get path in reverse
+    memcpy(path, treeNode->name, strlen(treeNode->name) + 1);
+    while (treeNode->parent) {
+        treeNode = treeNode->parent;
+        memcpy(path + strlen(treeNode->name) + 1, path, strlen(path) + 2);
+        memcpy(path, treeNode->name, strlen(treeNode->name));
+        memcpy(path + strlen(treeNode->name), "/", 1);
+    }
+    printf("%s\n", path);
 }
 
 
@@ -189,74 +276,68 @@ TreeNode* cd(TreeNode* currentNode, char* path) {
         }
         return currentNode->parent;
     } else {
-        // buffer for each folder that we jump into
-        char* buff;
-        // get len of path and init current len
-        int len = strlen(path);
-        int curr_len = 0;
-        // get the first folder we dive into
-        buff = strtok(path, "/");
-        // we track current len, so it matches with path len
-        // so we know when to stop, without crashing bcs of strtok
-        while (curr_len < len) {
-            // change folder
-            if (!strcmp(buff, "..")) {
-                currentNode = currentNode->parent;
-                curr_len += 3;
-                buff = strtok(NULL, "/\n");
-                continue;
-            }
-            // check for bad folder
-            FolderContent* folder_content = currentNode->content;
-            if (folder_content->children == NULL) {
-                puts("bad folder");
-                return currentNode;
-            }
-            ListNode* node = folder_content->children->head;
-            // iterate until we find correct folder to switch into
-            if (!node || !node->info || !node->info->name) {
-                // case: empty folder
-                printf("cd: no such file or directory: %s\n", path);
-                return pastNode;
-            }
-            // iterate until we find desired folder
-            // or until we run out of folders
-            while (node && strcmp(buff, node->info->name)) {
-                if (node == NULL) {
-                    printf("cd: no such file or directory: %s\n", path);
-                    return pastNode;
-                }
-                node = node->next;
-            }
-            // if node is node Is NULL, then there's no such directory
-            if (node == NULL) {
-                printf("cd: no such file or directory: %s\n", path);
-                return pastNode;
-            }
-            // at this point, in 'node' we have the folder we must go into
-            if (node->info->type == FOLDER_NODE) {
-                currentNode = node->info; 
-            } else {
-                // found node is a file
-                puts("That's a file bro");
-                return pastNode;
-            }
-            // update current len
-            curr_len += strlen(buff) + 1;
-            // get next folder
-            buff = strtok(NULL, "/");
-        }
+        currentNode = get_path(currentNode, path, 0);
         return currentNode;
     }
 }
 
+void displayNode(TreeNode* currentNode, int tabs, int fd[2])
+{
+    if (currentNode == NULL || currentNode->content == NULL) {
+        printf("Bad node\n");
+        return;
+    }
 
-void tree(TreeNode* currentNode, char* arg) {
-    // TODO
+    if (currentNode->type == FILE_NODE) {
+        printf("%s\n", currentNode->name);
+    }
+
+    if (currentNode->type == FOLDER_NODE) {
+        FolderContent* folder_content = currentNode->content;
+        if (folder_content == NULL || folder_content->children == NULL) {
+            printf("Hmm..\n");
+            return;
+        }
+        List* children = folder_content->children;
+        ListNode* child = children->head;
+        while (child) {
+            for (int i = 0; i < tabs; i++) {
+                printf("\t");
+            }
+            printf("%s\n", child->info->name);
+            if (child->info->type == FILE_NODE) {
+                fd[0]++;
+            }
+            if (child->info->type == FOLDER_NODE) {
+                fd[1]++;
+                displayNode(child->info, tabs + 1, fd);
+            }
+            child = child->next;
+        }
+    }
+}
+
+void tree(TreeNode* currentNode, char* arg)
+{
+    // if we have an argument, we move currentNode to given path
+    // from there we can start displaying the tree hierarchy
+    if (strcmp(arg, NO_ARG) != 0) {
+        TreeNode* pastNode = currentNode;
+        currentNode = get_path(currentNode, arg, 1);
+        // if currentNode is the same as pastNode
+        // folder probably doesn't exist / is a file
+        // message was already display in get_path() function
+        if (currentNode == pastNode)
+            return;
+    }
+    int fd[2] = {0, 0};
+    displayNode(currentNode, 0, fd);
+    printf("%d directories, %d files\n", fd[1], fd[0]);
 }
 
 
-void mkdir(TreeNode* currentNode, char* folderName) {
+void mkdir(TreeNode* currentNode, char* folderName)
+{
     // get the content of current folder
     FolderContent* content = currentNode->content;
     List* content_list = content->children;
@@ -266,7 +347,8 @@ void mkdir(TreeNode* currentNode, char* folderName) {
     while (it) {
         if (!strcmp(folderName, it->info->name)) {
             // folder already exists
-            printf("mkdir: cannot create directory '%s': File exists\n", folderName);
+            printf("mkdir: cannot create directory '%s': File exists\n",
+                   folderName);
             return;
         }
         it = it->next;
@@ -284,7 +366,7 @@ void mkdir(TreeNode* currentNode, char* folderName) {
     info->name = folderName;
     info->parent = currentNode;
     info->type = FOLDER_NODE;
-    
+
     // malloc folder content (list that stores children nodes)
     info->content = malloc(sizeof(FolderContent));
     FolderContent* f_content = info->content;
@@ -302,17 +384,14 @@ void mkdir(TreeNode* currentNode, char* folderName) {
 
 
 void rmrec(TreeNode* currentNode, char* resourceName) {
-    // TODO
 }
 
 
 void rm(TreeNode* currentNode, char* fileName) {
-    // TODO
 }
 
 
 void rmdir(TreeNode* currentNode, char* folderName) {
-    // TODO
 }
 
 
@@ -328,7 +407,7 @@ void touch(TreeNode* currentNode, char* fileName, char* fileContent) {
         puts("Bad folder");
         return;
     }
-    
+
     // check existence
     List* children = folder_content->children;
     ListNode* it = children->head;
@@ -365,10 +444,8 @@ void touch(TreeNode* currentNode, char* fileName, char* fileContent) {
 
 
 void cp(TreeNode* currentNode, char* source, char* destination) {
-    // TODO
 }
 
 void mv(TreeNode* currentNode, char* source, char* destination) {
-    // TODO
 }
 
