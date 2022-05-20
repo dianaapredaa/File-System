@@ -1,1 +1,23 @@
 mkdir A
+mkdir B
+ls
+cd A
+ls
+mkdir C
+mkdir D
+mkdir E
+ls
+cd ..
+cd B
+mkdir lmao
+mkdir haha
+ls
+cd ..
+cd A/C
+ls
+touch naspa fijsdjfidsjfis
+touch dsijfijds ifdsijfdjsifjdsifjsi
+ls
+ls naspa
+ls dsijfijds
+ls
