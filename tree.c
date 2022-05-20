@@ -214,17 +214,24 @@ TreeNode* cd(TreeNode* currentNode, char* path) {
             }
             ListNode* node = folder_content->children->head;
             // iterate until we find correct folder to switch into
-            if (node == NULL) {
+            if (!node || !node->info || !node->info->name) {
                 // case: empty folder
                 printf("cd: no such file or directory: %s\n", path);
                 return pastNode;
             }
-            while (strcmp(buff, node->info->name)) {
+            // iterate until we find desired folder
+            // or until we run out of folders
+            while (node && strcmp(buff, node->info->name)) {
                 if (node == NULL) {
                     printf("cd: no such file or directory: %s\n", path);
                     return pastNode;
                 }
                 node = node->next;
+            }
+            // if node is node Is NULL, then there's no such directory
+            if (node == NULL) {
+                printf("cd: no such file or directory: %s\n", path);
+                return pastNode;
             }
             // at this point, in 'node' we have the folder we must go into
             if (node->info->type == FOLDER_NODE) {
