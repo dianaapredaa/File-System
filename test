@@ -1,13 +1,7 @@
 mkdir A
-cd A
 mkdir B
+mkdir C
 cd B
 touch b
 cd ..
-mkdir C
-cd C
-touch c
-touch d
-cd ../..
-touch y content_y
-tree A/C
+rmdir B

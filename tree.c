@@ -383,15 +383,195 @@ void mkdir(TreeNode* currentNode, char* folderName)
 }
 
 
-void rmrec(TreeNode* currentNode, char* resourceName) {
+void rmrec(TreeNode* currentNode, char* resourceName)
+{
+    // check for NULLs
+    if (currentNode == NULL) {
+        printf("Bad node.\n");
+        return;
+    }
+
+    FolderContent* folder_content = currentNode->content;
+
+    if (folder_content->children == NULL) {
+        printf("Bad folder.\n");
+        return;
+    }
+
+    // get list, node to iterate and prev node
+    List* children = folder_content->children;
+    ListNode* child = children->head;
+    ListNode* prev = NULL;
+
+    // interate until end of the list or until we find desired node
+    while (child) {
+        if (strcmp(child->info->name, resourceName) == 0) {
+            break;
+        }
+        prev = child;
+        child = child->next;
+    }
+
+    // if node is NULL, desired node does not exist
+    if (child == NULL) {
+        printf("rmrec: failed to remove '%s': No such file or directory\n",
+               resourceName);
+        return;
+    }
+
+    TreeNode* Tree_Node = child->info;
+    // free folder content
+    free_node(Tree_Node);
+
+    // if child is the only node in the list
+    if (prev == NULL && child->next == NULL) {
+        children->head = NULL;
+    // if child is the first node
+    } else if (prev == NULL) {
+        children->head = child->next;
+        child->next = NULL;
+    // if child is anywhere else
+    } else {
+        prev->next = child->next;
+        child->next = NULL;
+    }
+
+    free(child);
 }
 
 
-void rm(TreeNode* currentNode, char* fileName) {
+void rm(TreeNode* currentNode, char* fileName)
+{
+    // check for NULLs
+    if (currentNode == NULL) {
+        printf("Bad node.\n");
+        return;
+    }
+
+    FolderContent* folder_content = currentNode->content;
+
+    if (folder_content->children == NULL) {
+        printf("Bad folder.\n");
+        return;
+    }
+
+    // get list, node to iterate and prev node
+    List* children = folder_content->children;
+    ListNode* child = children->head;
+    ListNode* prev = NULL;
+
+    // interate until end of the list or until we find desired node
+    while (child) {
+        if (strcmp(child->info->name, fileName) == 0) {
+            break;
+        }
+        prev = child;
+        child = child->next;
+    }
+
+    // if node is NULL, desired node does not exist
+    if (child == NULL) {
+        printf("rm: failed to remove '%s': No such file or directory\n",
+               fileName);
+        return;
+    }
+
+    TreeNode* Tree_Node = child->info;
+
+    // command is for files only
+    if (Tree_Node->type == FOLDER_NODE) {
+        printf("rm: cannot remove '%s': Is a directory\n", fileName);
+        return;
+    }
+
+    // free file content
+    free_node(Tree_Node);
+
+    // if child is the only node in the list
+    if (prev == NULL && child->next == NULL) {
+        children->head = NULL;
+    // if child is the first node
+    } else if (prev == NULL) {
+        children->head = child->next;
+        child->next = NULL;
+    // if child is anywhere else
+    } else {
+        prev->next = child->next;
+        child->next = NULL;
+    }
+
+    free(child);
 }
 
 
-void rmdir(TreeNode* currentNode, char* folderName) {
+void rmdir(TreeNode* currentNode, char* folderName)
+{
+    // check for NULLs
+    if (currentNode == NULL) {
+        printf("Bad node.\n");
+        return;
+    }
+
+    FolderContent* folder_content = currentNode->content;
+
+    if (folder_content->children == NULL) {
+        printf("Bad folder.\n");
+        return;
+    }
+
+    // get list, node to iterate and prev node
+    List* children = folder_content->children;
+    ListNode* child = children->head;
+    ListNode* prev = NULL;
+
+    // interate until end of the list or until we find desired node
+    while (child) {
+        if (strcmp(child->info->name, folderName) == 0) {
+            break;
+        }
+        prev = child;
+        child = child->next;
+    }
+
+    // if node is NULL, desired node does not exist
+    if (child == NULL) {
+        printf("rmdir: failed to remove '%s': No such file or directory\n",
+               folderName);
+        return;
+    }
+
+    TreeNode* Tree_Node = child->info;
+
+    // command is for folders only
+    if (Tree_Node->type == FILE_NODE) {
+        printf("rmdir: failed to remove '%s': Not a directory\n", folderName);
+        return;
+    }
+
+    FolderContent *fc = Tree_Node->content;
+    if (fc->children->head != NULL) {
+        printf("rmdir: failed to remove '%s': Directory not empty\n",
+               folderName);
+        return;
+    }
+
+    // free folder content
+    free_node(Tree_Node);
+
+    // if child is the only node in the list
+    if (prev == NULL && child->next == NULL) {
+        children->head = NULL;
+    // if child is the first node
+    } else if (prev == NULL) {
+        children->head = child->next;
+        child->next = NULL;
+    // if child is anywhere else
+    } else {
+        prev->next = child->next;
+        child->next = NULL;
+    }
+
+    free(child);
 }
 
 
@@ -443,7 +623,96 @@ void touch(TreeNode* currentNode, char* fileName, char* fileContent) {
 }
 
 
-void cp(TreeNode* currentNode, char* source, char* destination) {
+void cp(TreeNode* currentNode, char* source, char* destination)
+{
+    // check for NULLs
+    if (currentNode == NULL) {
+        printf("Bad node.\n");
+        return;
+    }
+
+    FolderContent* folder_content = currentNode->content;
+
+    if (folder_content->children == NULL) {
+        printf("Bad folder.\n");
+        return;
+    }
+
+    // get list, node to iterate and prev node
+    List* children = folder_content->children;
+    ListNode* child = children->head;
+    ListNode* prev = NULL;
+
+    // interate until end of the list or until we find desired node
+    while (child) {
+        if (strcmp(child->info->name, source) == 0) {
+            break;
+        }
+        prev = child;
+        child = child->next;
+    }
+
+    // if node is NULL, desired node does not exist
+    if (child == NULL) {
+        printf("cp: failed to copy '%s': No such file or directory\n", source);
+        return;
+    }
+
+    TreeNode* pastNode = currentNode;
+    // buffer for each folder that we jump into
+    char* buff;
+    // get len of path and init current len
+    int len = strlen(destination);
+    int curr_len = 0;
+    // get the first folder we dive into
+    buff = strtok(destination, "/\n");
+    // we track current len, so it matches with path len
+    // so we know when to stop, without crashing bcs of strtok
+    while (curr_len < len) {
+        // change folder
+        if (!strcmp(buff, "..")) {
+            currentNode = currentNode->parent;
+            curr_len += 3;
+            buff = strtok(NULL, "/\n");
+            continue;
+        }
+
+        FolderContent* folder_content = currentNode->content;
+        ListNode* node = folder_content->children->head;
+
+        // iterate until we find correct folder to switch into
+        if (!node || !node->info) {
+            // case: write a file
+            break;
+        }
+        // iterate until we find desired folder
+        // or until we run out of folders
+        while (node && strcmp(buff, node->info->name)) {
+            if (node == NULL) {
+                printf("cd: no such file or directory: %s\n", destination);
+                return pastNode;
+            }
+            node = node->next;
+        }
+        // if node is node Is NULL, then there's no such directory
+        if (node == NULL) {
+            printf("cd: no such file or directory: %s\n", destination);
+            return pastNode;
+        }
+        // at this point, in 'node' we have the folder we must go into
+        if (node->info->type == FOLDER_NODE) {
+            currentNode = node->info;
+        } 
+        // update current len
+        curr_len += strlen(buff) + 1;
+        // get next folder
+        buff = strtok(NULL, "/");
+    }
+    return currentNode;
+
+
+
+    TreeNode* Tree_Node = child->info;   
 }
 
 void mv(TreeNode* currentNode, char* source, char* destination) {
