@@ -656,10 +656,8 @@ void cp(TreeNode* currentNode, char* source, char* destination)
     if (child == NULL) {
         printf("cp: failed to copy '%s': No such file or directory\n", source);
         return;
-    }
-
-    if (child->info->type == FOLDER_NODE) {
-        printf("cp: -r not specified; omitting directory '%s'\n", source);
+    } else if (child->info->type == FOLDER_NODE) {
+        printf("cp: -r not specified; omitting directory '%s'", source);
         return;
     }
 
@@ -667,89 +665,69 @@ void cp(TreeNode* currentNode, char* source, char* destination)
 
     char* newFileName =  source;
 
-    TreeNode* pastNode = currentNode;
-    // buffer for each folder that we jump into
-    char* buff;
-    // get len of path and init current len
-    int len = strlen(destination);
-    int curr_len = 0;
-    // get the first folder we dive into
-    buff = strtok(destination, "/\n");
-    // we track current len, so it matches with path len
-    // so we know when to stop, without crashing bcs of strtok
-    int notGood = 0;
-    while (curr_len < len) {
-        // change folder
+    char* buff = malloc(MAX_STRING_SIZE);
+    buff = strtok(destination, "/");
+
+    child = children->head;
+
+    if (!strcmp(buff, "..")) {
+        newFileName = source;
+    }
+
+    while (child && strcmp(child->info->name, buff)) {
+        child = child->next;
+    }
+
+    int isFinal = 0;
+    if (child && child->info->type == FOLDER_NODE) {
+        currentNode = child->info;
+    } else if (child == NULL) {
+            newFileName = buff;
+        isFinal = 1;
+    }
+    while ((buff = strtok(NULL, "/")) && (isFinal == 0)) {
+        FolderContent* fc = currentNode->content;
+        children = fc->children;
+        child = children->head;
+
         if (!strcmp(buff, "..") && currentNode->parent) {
+            newFileName = source;
             currentNode = currentNode->parent;
-            curr_len += 3;
-            buff = strtok(NULL, "/\n");
             continue;
         }
 
-        FolderContent* folder_content = currentNode->content;
-        ListNode* node = folder_content->children->head;
+        ListNode* prev = NULL;
+        while (child && strcmp(child->info->name, buff)) {
+            prev = child;
+            child = child->next;
+        }
 
-        // iterate until we find correct folder to switch into
-        if (!node || !node->info) {
-            // case: write a file
-            if (currentNode->type == FOLDER_NODE) {
-                newFileName = buff;
-                notGood++;
-            }
-        }
-        // iterate until we find desired folder
-        // or until we run out of folders
-        while (node && strcmp(buff, node->info->name)) {
-            node = node->next;
-        }
-        // if node is node is NULL, then there's no such directory
-        if (node == NULL) {
-            // case: write file
-            if (currentNode->type == FOLDER_NODE) {
-                newFileName = buff;
-                notGood++;
+        if (child && child->info->type == FILE_NODE) {
+            newFileName = source;
 
-                FolderContent* folder = currentNode->content;
-                ListNode* it = folder->children->head;
-                while (it && strcmp(source, buff))
-                    it = it->next;
-                if (it == NULL) {
-                    // no file with same name as source, so all good
-                    break;
-                } else {
-                    FileContent* fc = it->info->content;
-                    free(fc->text);
-                    FileContent* fc2 = source_node->content;
-                    fc->text = strdup(fc2->text);
-                    return;                    
-                }
-            }
-        }
-        // at this point, in 'node' we have the folder we must go into
-        if (node && node->info->type == FOLDER_NODE) {
-            currentNode = node->info;
-        } else if (node && node->info->type == FILE_NODE && notGood <= 1) {
-            FileContent* fc = node->info->content;
-            free(fc->text);
-            FileContent* fc2 = source_node->content;
-            fc->text = strdup(fc2->text);
+            FileContent* file = child->info->content;
+            free(file->text);
+            FileContent* file2 = source_node->content;
+            file->text = strdup(file2->text);
+
             return;
-        } else {
+        }
+
+        if (child && child->info->type == FOLDER_NODE) {
+            currentNode = child->info;
+        } else if (child == NULL && strcmp(buff, "..")) {
+            isFinal = 1;
             newFileName = buff;
-            notGood++;
-        }
-        // update current len
-        curr_len += strlen(buff) + 1;
-        // get next folder
-        buff = strtok(NULL, "/\n");
-        printf("ng: %d\n", notGood);
-        if (notGood > 1) {
-            printf("cp: failed to access '%s': Not a directory\n",
-                   destination);
-            return;
+        } else if (child == NULL && !strcmp(buff, "..") && currentNode->parent) {
+            newFileName = source;
+            currentNode = currentNode->parent;
         }
     }
+
+    printf("folder name: %s\n", currentNode->name);
+    printf("name: %s\n", newFileName);
+
+    child = children->head;
 
     FileContent* file_content = source_node->content;
     touch(currentNode, strdup(newFileName), strdup(file_content->text));

@@ -1,7 +1,6 @@
-mkdir A
+mkdir A 
+cd A
 mkdir B
-mkdir C
-cd B
-touch b
 cd ..
-rmdir B
+touch a 
+cp a A/B/C/d
