@@ -718,7 +718,8 @@ void cp(TreeNode* currentNode, char* source, char* destination)
         } else if (child == NULL && strcmp(buff, "..")) {
             isFinal = 1;
             newFileName = buff;
-        } else if (child == NULL && !strcmp(buff, "..") && currentNode->parent) {
+        } else if (child == NULL && !strcmp(buff, "..") &&
+                   currentNode->parent) {
             newFileName = source;
             currentNode = currentNode->parent;
         }
