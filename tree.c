@@ -1,8 +1,10 @@
+// Copyright 2021 - 2022 Omer Tarik Ilhan & Preda Diana 314CA
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "my_strdup.h"
 
+#include "my_strdup.h"
+#include "utils.h"
 #include "tree.h"
 
 #define TREE_CMD_INDENT_SIZE 4
@@ -14,6 +16,7 @@ FileTree createFileTree(char* rootFolderName) {
     // malloc file tree struct
     FileTree file_tree;
     file_tree.root = malloc(sizeof(TreeNode));
+    DIE(file_tree.root == NULL, "createFileTree failed");
     // root has no parents
     file_tree.root->parent = NULL;
     // root name is given as a parameter
@@ -22,69 +25,15 @@ FileTree createFileTree(char* rootFolderName) {
     file_tree.root->type = FOLDER_NODE;
     // malloc size of folder content
     file_tree.root->content = malloc(sizeof(FolderContent));
+    DIE(file_tree.root->content == NULL, "createFileTree failed");
     // when created, root folder content is empty
     FolderContent* content = file_tree.root->content;
     content->children = malloc(sizeof(List));
+    DIE(content->children == NULL, "createFileTree failed");
     content->children->head = NULL;
 
     return file_tree;
 }
-
-TreeNode* get_path(TreeNode* currentNode, char* path) {
-    if (currentNode->type == FILE_NODE)
-        return currentNode;
-
-    // buffer for each folder that we jump into
-    char* buff;
-    // get len of path and init current len
-    int len = strlen(path);
-    int curr_len = 0;
-    // get the first folder we dive into
-    buff = strtok(path, "/\n");
-    // we track current len, so it matches with path len
-    // so we know when to stop, without crashing bcs of strtok
-    while (curr_len < len) {
-        // change folder
-        if (!strcmp(buff, "..")) {
-            currentNode = currentNode->parent;
-            curr_len += 3;
-            buff = strtok(NULL, "/\n");
-            continue;
-        }
-        // check for bad folder
-        FolderContent* folder_content = currentNode->content;
-        if (folder_content->children == NULL) {
-            puts("bad folder .. or file?");
-            return currentNode;
-        }
-        ListNode* node = folder_content->children->head;
-        if (!node || !node->info)
-            return NULL;
-
-        // iterate until we find desired folder
-        // or until we run out of folders
-        while (node && strcmp(buff, node->info->name))
-            node = node->next;
-
-        if (!node || !node->info)
-            return NULL;
-
-        // go to next node
-        currentNode = node->info;
-
-        if (node->info->type == FILE_NODE &&
-            len - curr_len <= (int)strlen(buff))
-            return node->info;
-
-        // update current len
-        curr_len += strlen(buff) + 1;
-        // get next folder
-        buff = strtok(NULL, "/");
-    }
-    return currentNode;
-}
-
-void free_node(TreeNode* node);
 
 void freeTree(FileTree fileTree) {
     // get root node
@@ -95,43 +44,6 @@ void freeTree(FileTree fileTree) {
     // the actual freeing
     free_node(node);
 }
-
-void free_node(TreeNode* node)
-{
-    // if node is null, something went wrong probably
-    // or we are at the end of the tree
-    if (node == NULL)
-        return;
-    // if node is a file
-    if (node->type == FILE_NODE && node->content != NULL) {
-        // free name, text and content
-        FileContent* content = node->content;
-        free(content->text);
-    }
-    // if node is a folder
-    if (node->type == FOLDER_NODE && node->content != NULL) {
-        // get the content
-        FolderContent* content = node->content;
-        if (content->children != NULL) {
-            // if not empty, start removing and freeing every tree node
-            // remove and free until list is empty, iterative + recursive
-            while (content->children->head != NULL) {
-                ListNode* trash_node = content->children->head;
-                content->children->head = content->children->head->next;
-                trash_node->next = NULL;
-                free_node(trash_node->info);
-                free(trash_node);
-            }
-            // free the children list itself, content and name
-            free(content->children);
-        }
-    }
-    // free tree node itself
-    free(node->content);
-    free(node->name);
-    free(node);
-}
-
 
 void ls(TreeNode* currentNode, char* arg) {
     // if currentNode is NULL, something went wrong
@@ -230,6 +142,7 @@ void ls(TreeNode* currentNode, char* arg) {
 void pwd(TreeNode* treeNode) {
     // malloc path string
     char* path = malloc(MAX_STRING_SIZE);
+    DIE(path== NULL, "pwd failed");
     // get to root, get path in reverse
     memcpy(path, treeNode->name, strlen(treeNode->name) + 1);
     while (treeNode->parent) {
@@ -341,10 +254,12 @@ void mkdir(TreeNode* currentNode, char* folderName)
 
     // maloc new folder node
     ListNode* new_folder_node = malloc(sizeof(ListNode));
+    DIE(new_folder_node == NULL, "mkdir failed");
     new_folder_node->next = NULL;
 
     // malloc new folder
     new_folder_node->info = malloc(sizeof(TreeNode));
+    DIE(new_folder_node->info == NULL, "mkdir failed");
     TreeNode* info = new_folder_node->info;
 
     // set info about new folder (name, parent node, type)
@@ -354,8 +269,10 @@ void mkdir(TreeNode* currentNode, char* folderName)
 
     // malloc folder content (list that stores children nodes)
     info->content = malloc(sizeof(FolderContent));
+    DIE(info->content == NULL, "mkdir failed");
     FolderContent* f_content = info->content;
     f_content->children = malloc(sizeof(List));
+    DIE(f_content->children == NULL, "mkdir failed");
     f_content->children->head = NULL;
 
     // add folder to children of current node
@@ -586,13 +503,16 @@ void touch(TreeNode* currentNode, char* fileName, char* fileContent) {
     // create new file node
     // node part
     ListNode* new_file_node = malloc(sizeof(ListNode));
+    DIE(new_file_node == NULL, "touch failed");
     new_file_node->info = malloc(sizeof(TreeNode));
+    DIE(new_file_node->info == NULL, "touch failed");
     // filename and file details part
     new_file_node->info->name = fileName;
     new_file_node->info->parent = currentNode;
     new_file_node->info->type = FILE_NODE;
     // file content part
     FileContent* cont_struct = malloc(sizeof(FileContent));
+    DIE(cont_struct == NULL, "touch failed");
     cont_struct->text = fileContent;
     new_file_node->info->content = cont_struct;
 
@@ -639,6 +559,8 @@ void cp(TreeNode* currentNode, char* source, char* destination)
     // string for name of the file to be copied as
     // here we keep the full destionation, in case we modify it
     char* full_destination = malloc(strlen(destination) + 1);
+    DIE(full_destination == NULL, "cp failed");
+
     memcpy(full_destination, destination, strlen(destination) + 1);
 
     char* newFile = source_node->name;
@@ -761,6 +683,7 @@ void mv(TreeNode* currentNode, char* source, char* destination) {
     // string for name of the file to be copied as
     // here we keep the full destionation, in case we modify it
     char* full_destination = malloc(strlen(destination) + 1);
+    DIE(full_destination == NULL, "mv failed");
     memcpy(full_destination, destination, strlen(destination) + 1);
 
     // buffer for name of each folder that we jump into
@@ -828,10 +751,12 @@ void mv(TreeNode* currentNode, char* source, char* destination) {
     List* children = folder_content->children;
 
     ListNode* newNode = malloc(sizeof(ListNode));
+    DIE(newNode == NULL, "cp failed");
     // change name of move node only if needed
     if (strcmp(source_node->name, newFile)) {
         free(source_node->name);
         source_node->name = malloc(strlen(newFile) + 1);
+        DIE(source_node->name == NULL, "cp failed");
         memcpy(source_node->name, newFile, strlen(newFile) + 1);
     }
     // add new node to destination

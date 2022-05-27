@@ -1,3 +1,7 @@
+// Copyright 2021 - 2022 Omer Tarik Ilhan & Preda Diana 314CA
+#ifndef TREE_H
+#define TREE_H
+
 #define TREE_CMD_INDENT_SIZE 4
 #define NO_ARG ""
 #define PARENT_DIR ".."
@@ -68,3 +72,5 @@ void mv(TreeNode* currentNode, char* source, char* destination);
 FileTree createFileTree();
 
 void freeTree(FileTree fileTree);
+
+#endif  // TREE_H
