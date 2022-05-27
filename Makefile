@@ -1,11 +1,12 @@
+CFLAGS=-g -m32 -Wall -Wextra -std=c99 
+
 all: build
 
 build:
-	gcc -g main.c tree.c -o sd_fs
-#	valgrind --leak-check=full ./sd_fs
+	gcc $(CFLAGS) main.c tree.c my_strdup.c -o sd_fs
 
 clean:
 	rm *.o sd_fs
 
 run:
-	valgrind --leak-check=full ./sd_fs
+	./sd_fs

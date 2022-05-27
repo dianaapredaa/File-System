@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "my_strdup.h"
 
 #include "tree.h"
 
@@ -30,8 +31,6 @@ FileTree createFileTree(char* rootFolderName) {
 }
 
 TreeNode* get_path(TreeNode* currentNode, char* path) {
-    TreeNode* pastNode = currentNode;
-
     if (currentNode->type == FILE_NODE)
         return currentNode;
 
@@ -73,7 +72,8 @@ TreeNode* get_path(TreeNode* currentNode, char* path) {
         // go to next node
         currentNode = node->info;
 
-        if (node->info->type == FILE_NODE && len - curr_len <= strlen(buff))
+        if (node->info->type == FILE_NODE &&
+            len - curr_len <= (int)strlen(buff))
             return node->info;
 
         // update current len
@@ -92,12 +92,14 @@ void freeTree(FileTree fileTree) {
     // if empty, we are done
     if (node == NULL || node->content == NULL)
         return;
+    // the actual freeing
     free_node(node);
 }
 
 void free_node(TreeNode* node)
 {
     // if node is null, something went wrong probably
+    // or we are at the end of the tree
     if (node == NULL)
         return;
     // if node is a file
@@ -112,7 +114,6 @@ void free_node(TreeNode* node)
         FolderContent* content = node->content;
         if (content->children != NULL) {
             // if not empty, start removing and freeing every tree node
-            ListNode* list_node = content->children->head;
             // remove and free until list is empty, iterative + recursive
             while (content->children->head != NULL) {
                 ListNode* trash_node = content->children->head;
@@ -233,6 +234,7 @@ void pwd(TreeNode* treeNode) {
     memcpy(path, treeNode->name, strlen(treeNode->name) + 1);
     while (treeNode->parent) {
         treeNode = treeNode->parent;
+        // store path in a string, and add to the beginning of it next parent
         memcpy(path + strlen(treeNode->name) + 1, path, strlen(path) + 2);
         memcpy(path, treeNode->name, strlen(treeNode->name));
         memcpy(path + strlen(treeNode->name), "/", 1);
@@ -249,6 +251,7 @@ TreeNode* cd(TreeNode* currentNode, char* path) {
         puts("hmm");
         return currentNode;
     } else {
+        // change currentNode to desired path
         currentNode = get_path(currentNode, path);
 
         if (currentNode == NULL || currentNode->type == FILE_NODE) {
@@ -283,11 +286,13 @@ void displayNode(TreeNode* currentNode, int tabs, int fd[2])
                 printf("\t");
             }
             printf("%s\n", child->info->name);
+            // count files and folders
             if (child->info->type == FILE_NODE) {
                 fd[0]++;
             }
             if (child->info->type == FOLDER_NODE) {
                 fd[1]++;
+                // if node is folder, print what's inside
                 displayNode(child->info, tabs + 1, fd);
             }
             child = child->next;
@@ -300,7 +305,6 @@ void tree(TreeNode* currentNode, char* arg)
     // if we have an argument, we move currentNode to given path
     // from there we can start displaying the tree hierarchy
     if (strcmp(arg, NO_ARG)) {
-        TreeNode* pastNode = currentNode;
         currentNode = get_path(currentNode, arg);
         // if currentNode is the same as pastNode
         // folder probably doesn't exist / is a file
@@ -403,7 +407,7 @@ void rmrec(TreeNode* currentNode, char* resourceName)
     TreeNode* Tree_Node = child->info;
     // free folder content
     free_node(Tree_Node);
-
+    // remove node from list
     // if child is the only node in the list
     if (prev == NULL && child->next == NULL) {
         children->head = NULL;
@@ -467,7 +471,7 @@ void rm(TreeNode* currentNode, char* fileName)
 
     // free file content
     free_node(Tree_Node);
-
+    // remove node from list
     // if child is the only node in the list
     if (prev == NULL && child->next == NULL) {
         children->head = NULL;
@@ -538,7 +542,7 @@ void rmdir(TreeNode* currentNode, char* folderName)
 
     // free folder content
     free_node(Tree_Node);
-
+    // remove node from list
     // if child is the only node in the list
     if (prev == NULL && child->next == NULL) {
         children->head = NULL;
@@ -551,7 +555,6 @@ void rmdir(TreeNode* currentNode, char* folderName)
         prev->next = child->next;
         child->next = NULL;
     }
-
     free(child);
 }
 
@@ -593,7 +596,7 @@ void touch(TreeNode* currentNode, char* fileName, char* fileContent) {
     cont_struct->text = fileContent;
     new_file_node->info->content = cont_struct;
 
-
+    // add node to list
     if (children->head == NULL) {
         children->head = new_file_node;
         new_file_node->next = NULL;
@@ -638,11 +641,10 @@ void cp(TreeNode* currentNode, char* source, char* destination)
     char* full_destination = malloc(strlen(destination) + 1);
     memcpy(full_destination, destination, strlen(destination) + 1);
 
-    TreeNode* pastNode = currentNode;
     char* newFile = source_node->name;
 
     // THIS FOLLOWING FUNCTION IS VERY SIMILAR TO void get_path(...)
-    // I could not have used it though, because we perform several
+    // It could not have been used though, because we perform several
     // actions that require to stop the function inside it (for example,
     // overwriting a file), also, we need to remember what filename will be
 
@@ -680,7 +682,7 @@ void cp(TreeNode* currentNode, char* source, char* destination)
                 // of current buff and also our current node is NULL
                 // (node with said name does not exist), it means that
                 // it should be a folder (there are still nodes after it)
-                if (len - curr_len > strlen(buff)) {
+                if (len - curr_len > (int)strlen(buff)) {
                     printf("cp: failed to access '%s': Not a directory\n",
                            full_destination);
                     free(full_destination);
@@ -708,7 +710,7 @@ void cp(TreeNode* currentNode, char* source, char* destination)
     }
     // finally, if we get here, we must write a file with given name
     FileContent* file_content = source_node->content;
-    touch(currentNode, strdup(source_node->name), strdup(file_content->text));
+    touch(currentNode, strdup(newFile), strdup(file_content->text));
     free(full_destination);
 }
 
@@ -729,12 +731,12 @@ void mv(TreeNode* currentNode, char* source, char* destination) {
     List* ch = fc->children;
     ListNode* it = ch->head;
     ListNode* prev = NULL;
-
+    // iterate to desired node
     while (it && strcmp(it->info->name, source_node->name)) {
         prev = it;
         it = it->next;
     }
-
+    // remove node from list
     // if child is the only node in the list
     if (prev == NULL && it->next == NULL) {
         ch->head = NULL;
@@ -752,7 +754,7 @@ void mv(TreeNode* currentNode, char* source, char* destination) {
     char* newFile = source_node->name;
 
     // THIS FOLLOWING FUNCTION IS VERY SIMILAR TO void get_path(...)
-    // I could not have used it though, because we perform several
+    // It could not have been used though, because we perform several
     // actions that require to stop the function inside it (for example,
     // overwriting a file), also, we need to remember what filename will be
 
@@ -795,7 +797,7 @@ void mv(TreeNode* currentNode, char* source, char* destination) {
                 // of current buff and also our current node is NULL
                 // (node with said name does not exist), it means that
                 // it should be a folder (there are still nodes after it)
-                if (len - curr_len > strlen(buff)) {
+                if (len - curr_len > (int)strlen(buff)) {
                     printf("mv: failed to access '%s': Not a directory\n",
                            full_destination);
                     free(full_destination);
